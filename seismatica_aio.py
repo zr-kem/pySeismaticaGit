@@ -70,25 +70,6 @@ if __name__ == '__main__':
     E = ent[0] + ent[1] + ent[2]
     H_cont = np.cumsum(E)
     N = len(H_cont)
-    #%% Invented patterns
-    # Adaptive invented patterns for matrix D
-    # set_inv = []
-    # H_sign = np.cumsum(3 * -np.ones(N)/N * np.log(np.ones(N)/N))
-    # H_max = 3 * np.log(N)
-    # lo_a = min([H_test[-1], H_cont[-1]]) / (N - 1)
-    
-    # t_H_test = H_test / np.arange(1, N + 1)
-    # t_H_cont = H_cont / np.arange(1, N + 1)
-    # hi_a = max([max(t_H_test), max(t_H_cont)])
-    
-    # for a in np.linspace(lo_a, hi_a, int(cfg['n_invented'])):
-    #     patt_inv = np.arange(N) * a
-    #     patt_inv[patt_inv > H_max] = H_max
-    #     set_inv.append(patt_inv)
-    
-    # # set_inv.append(H_sign)
-    # set_inv.append(H_cont)
-    # control_id = len(set_inv) - 1
     
     # Fixed invented patterns for matrix D
     set_inv = []
@@ -151,6 +132,7 @@ if __name__ == '__main__':
                 control_rate += 1
         control_prob[i] = control_rate / experts_count
         print(i, 'of', step_count, 'p=', control_prob[i])
+    
     #%% Plotting
     tw = pd.date_range(st, et, periods = len(mseed[0].data)).to_pydatetime()
     tp = st + np.arange(step_count) * datetime.timedelta(seconds = float(cfg['scan_step']))
