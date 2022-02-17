@@ -1,14 +1,13 @@
 #%% Imports
+import sys
 import numpy as np
 import pandas as pd
 import obspy
 import scipy.spatial.distance as ssd
-from multiprocessing import Pool
-from matplotlib import pylab as plt
-import os, sys
 from scipy.stats.mstats import zscore
-import datetime
+from matplotlib import pylab as plt
 from matplotlib.dates import DateFormatter
+import datetime
 
 def dists(x, y, n_chunks):
     # Distances for choice: braycurtis canberra cityblock euclidean sqeuclidean minkowski
@@ -22,8 +21,8 @@ def dists(x, y, n_chunks):
 #%% Main script
 if __name__ == '__main__':
     
-    # cfg_name = sys.argv[1]
-    cfg_name = 'seismatica_2.cfg' # For debug
+    cfg_name = sys.argv[1]
+    # cfg_name = 'seismatica_1.cfg' # Manual set cfg for debug
     cfg = {}
     cfg_lines = []
     
@@ -40,7 +39,7 @@ if __name__ == '__main__':
             rec = line.split('=')
             cfg[rec[0]] = rec[1].replace('\n', '')
     
-    #%% Control pattern
+    #%% Build control pattern
     t1, t2 = cfg['control_time'].split(' ')
     x1 = t1.split(':')
     x2 = t2.split(':')
@@ -68,23 +67,28 @@ if __name__ == '__main__':
         ent.append(-df/s * np.log(df/s))
     
     E = ent[0] + ent[1] + ent[2]
+
+    # Control pattern
     H_cont = np.cumsum(E)
     N = len(H_cont)
     
-    # Fixed invented patterns for matrix D
+    ### Build invented patterns for matrix D
     set_inv = []
     H_max = 3 * np.log(N)
     H_sign = np.cumsum(3 * -np.ones(N)/N * np.log(np.ones(N)/N))
     
+    ### Set range of multiplicator a = 0.7...2.1 and generate invented patterns
     for a in np.linspace(H_max / N * 0.7, H_max / N * 2.1, int(cfg['n_invented'])):
         patt_inv = np.arange(N) * a
         patt_inv[patt_inv > H_max] = H_max
         set_inv.append(patt_inv)
     
+    ### Append to invented patterns set the control pattern
     set_inv.append(H_sign)
     set_inv.append(H_cont)
     control_id = len(set_inv) - 1
-    #%% Test patterns
+
+    ### Detection preparation
     t1, t2 = cfg['seismogram_time'].split(' ')
     x1 = t1.split(':')
     x2 = t2.split(':')
@@ -106,6 +110,7 @@ if __name__ == '__main__':
     control_prob = np.zeros(step_count)
     n_chunks = int(cfg['n_chunks'])
     
+    ### Build test pattern for every time window
     for i in range(step_count):
         ent = []
         for wave in waveforms:
@@ -115,16 +120,21 @@ if __name__ == '__main__':
             ent.append(-df/s * np.log(df/s))
     
         E = ent[0] + ent[1] + ent[2]
+
+        # Result test pattern
         H_test = np.cumsum(E)
         
+        # Matrix D building and normalization
         D = zscore(np.array(set_inv + [H_test]), axis = 0)
         
+        # Distances calculation
         diags = []
         for j in range(control_id + 1):
             dst = dists(D[j,:], D[-1,:], n_chunks)
             diags.append(dst)
         res_matrix = np.array(diags)
         
+        # Minimal distances from test to control patterns counts
         experts_count = len(dst)
         control_rate = 0
         for k in range(experts_count):
@@ -133,7 +143,8 @@ if __name__ == '__main__':
         control_prob[i] = control_rate / experts_count
         print(i, 'of', step_count, 'p=', control_prob[i])
     
-    #%% Plotting
+    ### Plotting
+    date_form = DateFormatter("%H:%M:%S")
     tw = pd.date_range(st, et, periods = len(mseed[0].data)).to_pydatetime()
     tp = st + np.arange(step_count) * datetime.timedelta(seconds = float(cfg['scan_step']))
     tickstep = 10 # int(cfg['n_chunks'])
@@ -149,7 +160,8 @@ if __name__ == '__main__':
             plt.yticks(fontsize = 14)
             plt.grid(True)
         plt.xlabel('Time', fontsize = 16)
-            
+        plt.show()
+
         plt.figure()
         for i in range(len(ent)):
             plt.subplot(3, 1, i + 1)
@@ -159,7 +171,8 @@ if __name__ == '__main__':
             plt.yticks(fontsize = 14)
             plt.grid(True)
         plt.xlabel(r'Counts $\it{i}$', fontsize = 16)
-            
+        plt.show()
+
         plt.figure()
         plt.subplot(2, 1, 1)
         plt.plot(E)
@@ -175,6 +188,7 @@ if __name__ == '__main__':
         plt.xticks(fontsize = 14)
         plt.yticks(fontsize = 14)    
         plt.grid(True)
+        plt.show()
         
     if cfg['plot_invent'] == 'True':
         plt.figure()
@@ -192,7 +206,8 @@ if __name__ == '__main__':
         plt.yticks(fontsize = 14) 
         plt.legend(['Control pattern', 'Test pattern', 'Singular pattern', 'All invented patterns'], fontsize = 16)
         plt.grid(True)
-    
+        plt.show()
+
         plt.figure()
         plt.plot(D[-2,:], '-g', lw = 3, alpha = 0.8)
         plt.plot(D[-1,:], '-.b', lw = 2, alpha = 0.8)
@@ -208,32 +223,32 @@ if __name__ == '__main__':
         plt.yticks(fontsize = 14) 
         plt.legend(['Control pattern', 'Test pattern', 'Singular pattern', 'All invented patterns'], fontsize = 16)
         plt.grid(True)
+        plt.show()
         
     if cfg['plot_scan'] == 'True':
-        date_form = DateFormatter("%H:%M:%S")
-        # winds = ['08:49:49', '08:50:48', '08:51:45']
-        # winds = ['07:58:01', '07:59:15', '08:00:01']
-        winds = ['16:26:16', '16:28:02', '16:28:22']
-        # winds = [t1] * 3
-        scl = [0.7, 1, 0.7]
         
         plt.figure()
         for i in range(len(waveforms)):
             ax = plt.subplot(4, 1, i + 1)
             plt.rcParams['axes.xmargin'] = 0
-            
             plt.plot(tw, waveforms[i][1])
             
-            for w, s in zip(winds, scl):
-                x1 = w.split(':')
-                st = sinfo.starttime.datetime.replace(hour = int(x1[0]), minute = int(x1[1]), second = int(x1[2]), microsecond = 0)
-                et = st + datetime.timedelta(seconds = int(N / sinfo['sampling_rate']))
-                mx = max(waveforms[i][1])
-                plt.plot([st, et], [min(waveforms[i][1])*s, min(waveforms[i][1])*s], '--k', lw = 1)
-                plt.plot([et, et], [min(waveforms[i][1])*s, max(waveforms[i][1])*s], '--k', lw = 1)
-                plt.plot([st, et], [max(waveforms[i][1])*s, max(waveforms[i][1])*s], '--k', lw = 1)
-                plt.plot([st, st], [min(waveforms[i][1])*s, max(waveforms[i][1])*s], '--k', lw = 1)
-                plt.text(st, max(waveforms[i][1])*s, w, size=12, ha="left", va="top", bbox=dict(boxstyle="roundtooth", ec='k', fc='w',))
+            if cfg['plot_windows'] == 'True':
+                
+                winds = cfg['timestamps'].split(' ')
+                scales = np.random.randint(5, 10, size = len(winds)) / 10
+                for w, s in zip(winds, scales):
+                    
+                    x1 = w.split(':')
+                    st = sinfo.starttime.datetime.replace(hour = int(x1[0]), minute = int(x1[1]), second = int(x1[2]), microsecond = 0)
+                    et = st + datetime.timedelta(seconds = int(N / sinfo['sampling_rate']))
+                    mx = max(waveforms[i][1])
+                    plt.plot([st, et], [min(waveforms[i][1])*s, min(waveforms[i][1])*s], '--k', lw = 1)
+                    plt.plot([et, et], [min(waveforms[i][1])*s, max(waveforms[i][1])*s], '--k', lw = 1)
+                    plt.plot([st, et], [max(waveforms[i][1])*s, max(waveforms[i][1])*s], '--k', lw = 1)
+                    plt.plot([st, st], [min(waveforms[i][1])*s, max(waveforms[i][1])*s], '--k', lw = 1)
+                    plt.text(st, max(waveforms[i][1])*s, w, size=12, ha="left", va="top", bbox=dict(boxstyle="roundtooth", ec='k', fc='w',))
+            
             plt.yticks(fontsize = 14)    
             plt.xticks(ticks, fontsize = 10)
             plt.setp(ax.get_xticklabels(), visible = False)
@@ -253,3 +268,4 @@ if __name__ == '__main__':
         ax.xaxis.set_major_formatter(date_form)
         plt.tight_layout()
         plt.grid(True)
+        plt.show()
