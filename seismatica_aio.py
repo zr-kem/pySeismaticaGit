@@ -203,11 +203,12 @@ if __name__ == '__main__':
             
         plt.xticks(np.arange(11)*N//10, np.arange(11)*N//10, fontsize = 16)
         plt.xlabel(r'Counts $\it{i}$', fontsize = 18)
-        plt.ylabel(r'$\bf{H}$', rotation = 0, fontsize = 18)
-        plt.xticks(fontsize = 14)
-        plt.yticks(fontsize = 14) 
+        plt.ylabel(r'$\bf{C}$', rotation = 0, fontsize = 16)
+        plt.xticks(fontsize = 12)
+        plt.yticks(fontsize = 12) 
         plt.legend(['Control pattern', 'Test pattern', 'Singular pattern', 'All invented patterns'], fontsize = 16)
         plt.grid(True)
+        plt.tight_layout()
         plt.show()
 
         plt.figure()
@@ -221,10 +222,11 @@ if __name__ == '__main__':
         plt.xticks(np.arange(11)*N//10, np.arange(11)*N//10, fontsize = 16)
         plt.xlabel(r'Counts $\it{i}$', fontsize = 16)
         plt.ylabel(r'$\bf{D}$', rotation = 0, fontsize = 16)
-        plt.xticks(fontsize = 14)
-        plt.yticks(fontsize = 14) 
+        plt.xticks(fontsize = 12)
+        plt.yticks(fontsize = 12) 
         plt.legend(['Control pattern', 'Test pattern', 'Singular pattern', 'All invented patterns'], fontsize = 16)
         plt.grid(True)
+        plt.tight_layout()
         plt.show()
         
     if cfg['plot_scan'] == 'True':
@@ -233,7 +235,7 @@ if __name__ == '__main__':
         for i in range(len(waveforms)):
             ax = plt.subplot(4, 1, i + 1)
             plt.rcParams['axes.xmargin'] = 0
-            plt.plot(tw, waveforms[i][1])
+            plt.plot(tw, waveforms[i][1], 'k', alpha = 0.75)
             
             if cfg['plot_windows'] == 'True':
                 
