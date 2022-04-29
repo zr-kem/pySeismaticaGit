@@ -35,10 +35,12 @@ n_chunks=20
 ## Plotting options
 ### Plot control pattern: source waveform, transformations, final shape
 plot_control=False
-### Plot invented patterns - source and normalized shapes
+### Plot invented patterns - source and normalized shapes. Depricated!
 plot_invent=False
 ### Plot similarity evolution step-by-step for a number of time windows
 plot_scan=True
 ### Plot sample time windows on 'seismogram' at desired 'timestamps'
 plot_windows=True
 timestamps=08:49:49 08:50:48 08:51:45
+### Run in multiprocessor mode - set mode to 'mpi' or none
+mode=mpi
